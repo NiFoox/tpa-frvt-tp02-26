@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "Donato",
+  "author": "Acosta, Cacchiarelli, Salomon",
   "editor": "wokwi",
   "parts": [
     {
@@ -9,11 +9,96 @@
       "top": 0,
       "left": 0,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledVerde",
+      "top": -110,
+      "left": -170,
+      "attrs": {
+        "color": "green"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "rVerde",
+      "top": -55,
+      "left": -155,
+      "attrs": {
+        "value": "330"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledAzul",
+      "top": 65,
+      "left": -170,
+      "attrs": {
+        "color": "blue"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "rAzul",
+      "top": 120,
+      "left": -155,
+      "attrs": {
+        "value": "330"
+      }
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -130,
+      "left": 180,
+      "attrs": {
+        "temperature": "24",
+        "humidity": "50"
+      }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pote",
+      "top": 30,
+      "left": 190,
+      "attrs": {
+        "value": "512"
+      }
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled",
+      "top": -210,
+      "left": 20,
+      "attrs": {
+        "i2cAddress": "0x3c"
+      }
     }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ]
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:23", "rVerde:1", "green", [] ],
+    [ "rVerde:2", "ledVerde:A", "green", [] ],
+    [ "ledVerde:C", "esp:GND.1", "black", [] ],
+
+    [ "esp:2", "rAzul:1", "blue", [] ],
+    [ "rAzul:2", "ledAzul:A", "blue", [] ],
+    [ "ledAzul:C", "esp:GND.1", "black", [] ],
+
+    [ "dht:VCC", "esp:3V3", "red", [] ],
+    [ "dht:GND", "esp:GND.1", "black", [] ],
+    [ "dht:SDA", "esp:15", "green", [] ],
+
+    [ "pote:VCC", "esp:3V3", "red", [] ],
+    [ "pote:GND", "esp:GND.1", "black", [] ],
+    [ "pote:SIG", "esp:34", "orange", [] ],
+
+    [ "oled:VCC", "esp:3V3", "red", [] ],
+    [ "oled:GND", "esp:GND.1", "black", [] ],
+    [ "oled:SDA", "esp:21", "blue", [] ],
+    [ "oled:SCL", "esp:22", "purple", [] ]
   ],
   "serialMonitor": {
     "display": "terminal",
