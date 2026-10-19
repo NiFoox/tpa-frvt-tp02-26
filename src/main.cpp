@@ -20,8 +20,5 @@ void setup() {
 }
 
 void loop() {
-
-    // Polling no bloqueante: verifica mensajes de Telegram cada ~1 segundo.
-    // Los mensajes se procesan en orden de llegada (FIFO).
     TelegramBot::procesar();
 }

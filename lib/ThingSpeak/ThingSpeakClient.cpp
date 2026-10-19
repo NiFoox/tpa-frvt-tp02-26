@@ -9,8 +9,6 @@
 namespace ThingSpeakClient {
 
 bool enviarDHT22(float temperatura, float humedad) {
-
-    // Validar que los valores sean números válidos
     if (isnan(temperatura) || isnan(humedad)) {
         Serial.println(
             "[THINGSPEAK] Error: valores invalidos (NaN). Envio cancelado."

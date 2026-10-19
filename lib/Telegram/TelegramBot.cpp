@@ -10,8 +10,6 @@
 #include <Display.h>
 #include <ThingSpeakClient.h>
 
-// ─── Variables internas del módulo ───────────────────────────────────────────
-
 namespace {
 
 WiFiClientSecure clienteSeguro;
@@ -20,13 +18,9 @@ UniversalTelegramBot* bot = nullptr;
 unsigned long ultimoPoll = 0;
 constexpr unsigned long INTERVALO_POLL_MS = 1000;
 
-// ─── Helpers de respuesta ─────────────────────────────────────────────────────
-
 void responder(const String& chatId, const String& texto) {
     bot->sendMessage(chatId, texto, "");
 }
-
-// ─── Mensaje de bienvenida ────────────────────────────────────────────────────
 
 void cmdStart(const String& chatId) {
     String msg =
@@ -50,13 +44,7 @@ void cmdStart(const String& chatId) {
     responder(chatId, msg);
 }
 
-// ─── Comandos de LEDs ─────────────────────────────────────────────────────────
-
 void cmdLed(const String& chatId, const String& texto) {
-
-    // Formato esperado: /led<gpio><on|off>
-    // GPIO válidos: 23 (verde) o 2 (azul)
-
     struct Caso {
         const char* cmd;
         uint8_t gpio;
@@ -88,7 +76,6 @@ void cmdLed(const String& chatId, const String& texto) {
         }
     }
 
-    // Formato /led<gpio><on|off> no reconocido
     responder(
         chatId,
         "❌ Comando LED no reconocido.\n"
@@ -96,10 +83,7 @@ void cmdLed(const String& chatId, const String& texto) {
     );
 }
 
-// ─── Comando DHT22 ────────────────────────────────────────────────────────────
-
 void cmdDht22(const String& chatId) {
-
     Hardware::DatosDHT22 dht = Hardware::leerDHT22();
 
     if (!dht.valido) {
@@ -123,10 +107,7 @@ void cmdDht22(const String& chatId) {
     responder(chatId, String(buf));
 }
 
-// ─── Comando Potenciómetro ────────────────────────────────────────────────────
-
 void cmdPote(const String& chatId) {
-
     float voltaje = Hardware::leerVoltajePotenciometro();
 
     Serial.printf("[POTE] Voltaje: %.2f V\r\n", voltaje);
@@ -136,10 +117,7 @@ void cmdPote(const String& chatId) {
     responder(chatId, String(buf));
 }
 
-// ─── Comando PlatiOT ─────────────────────────────────────────────────────────
-
 void cmdPlatiot(const String& chatId) {
-
     Hardware::DatosDHT22 dht = Hardware::leerDHT22();
 
     if (!dht.valido) {
@@ -169,14 +147,8 @@ void cmdPlatiot(const String& chatId) {
     }
 }
 
-// ─── Comando Display ──────────────────────────────────────────────────────────
-
 void cmdDisplay(const String& chatId, const String& texto) {
-
-    // texto viene en minúsculas normalizadas, p.ej. "/displayled"
-
     if (texto == "/displayled") {
-
         bool verde = Hardware::getLedVerde();
         bool azul  = Hardware::getLedAzul();
 
@@ -193,9 +165,7 @@ void cmdDisplay(const String& chatId, const String& texto) {
             " | Azul: " +
             (azul  ? "ON" : "OFF")
         );
-
     } else if (texto == "/displaydht22") {
-
         Hardware::DatosDHT22 dht = Hardware::leerDHT22();
 
         if (dht.valido) {
@@ -205,17 +175,12 @@ void cmdDisplay(const String& chatId, const String& texto) {
             Display::mostrarError("DHT22 invalido");
             responder(chatId, "❌ Lectura DHT22 inválida. OLED muestra error.");
         }
-
     } else if (texto == "/displaypote") {
-
         float voltaje = Hardware::leerVoltajePotenciometro();
         Display::mostrarPotenciometro(voltaje);
         responder(chatId, "📺 OLED: mostrando potenciómetro.");
-
     } else {
-
-        // Subcmd no reconocido: mostrar en OLED y notificar al usuario
-        String subcmd = texto.substring(8); // quitar "/display"
+        String subcmd = texto.substring(8);
         Display::mostrarError("Cmd no reconocido:\n" + subcmd);
         responder(
             chatId,
@@ -225,8 +190,6 @@ void cmdDisplay(const String& chatId, const String& texto) {
     }
 }
 
-// ─── Comando desconocido ──────────────────────────────────────────────────────
-
 void cmdDesconocido(const String& chatId, const String& texto) {
     responder(
         chatId,
@@ -235,17 +198,13 @@ void cmdDesconocido(const String& chatId, const String& texto) {
     );
 }
 
-// ─── Dispatcher principal ─────────────────────────────────────────────────────
-
 void despacharMensaje(const telegramMessage& msg) {
-
     const String chatId   = msg.chat_id;
     const String usuario  = msg.from_name;
     String texto          = msg.text;
     texto.trim();
     texto.toLowerCase();
 
-    // Loguear petición en Serial con chat_id y username
     Serial.printf(
         "[BOT] De: %s (@%s) | Cmd: %s\r\n",
         chatId.c_str(),
@@ -253,7 +212,6 @@ void despacharMensaje(const telegramMessage& msg) {
         texto.c_str()
     );
 
-    // Filtro por CHAT_ID (si está configurado)
     if (Config::TELEGRAM_CHAT_ID != 0 &&
         chatId.toInt() != Config::TELEGRAM_CHAT_ID)
     {
@@ -264,7 +222,6 @@ void despacharMensaje(const telegramMessage& msg) {
         return;
     }
 
-    // Ruteo de comandos
     if (texto == "/start") {
         cmdStart(chatId);
     } else if (texto.startsWith("/led")) {
@@ -284,14 +241,11 @@ void despacharMensaje(const telegramMessage& msg) {
     Serial.printf("[BOT] Respuesta enviada a: %s\r\n\r\n", chatId.c_str());
 }
 
-}  // namespace anónimo
-
-// ─── API pública ──────────────────────────────────────────────────────────────
+}  // namespace
 
 namespace TelegramBot {
 
 void iniciar() {
-
     Serial.printf("[WiFi] Conectando a: %s ", Config::WIFI_SSID);
 
     WiFi.begin(Config::WIFI_SSID, Config::WIFI_PASSWORD);
@@ -306,17 +260,13 @@ void iniciar() {
         WiFi.localIP().toString().c_str()
     );
 
-    // Aceptar cualquier certificado SSL (adecuado para proyectos educativos;
-    // en producción usar bot->setFingerprint o cargar el CA root)
     clienteSeguro.setInsecure();
-
     bot = new UniversalTelegramBot(Config::TELEGRAM_BOT_TOKEN, clienteSeguro);
 
     Serial.println("[BOT] Bot de Telegram inicializado. Esperando mensajes...");
 }
 
 void procesar() {
-
     if (!bot) return;
 
     unsigned long ahora = millis();
@@ -325,12 +275,8 @@ void procesar() {
 
     ultimoPoll = ahora;
 
-    // getUpdates devuelve el número de mensajes nuevos.
-    // La biblioteca los almacena en bot->messages[0..N-1]
-    // ordenados por message_id (FIFO estricto según la API de Telegram).
     int N = bot->getUpdates(bot->last_message_received + 1);
 
-    // Procesar cada mensaje en orden de llegada
     for (int i = 0; i < N; i++) {
         despacharMensaje(bot->messages[i]);
     }
