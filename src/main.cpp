@@ -3,10 +3,7 @@
 #include <AppConfig.h>
 #include <Hardware.h>
 #include <Display.h>
-
-unsigned long ultimoTest = 0;
-
-bool estadoLed = false;
+#include <TelegramBot.h>
 
 void setup() {
 
@@ -17,50 +14,14 @@ void setup() {
 
     Hardware::iniciar();
     Display::iniciar();
+    TelegramBot::iniciar();
 
-    Serial.println("[INFO] Hardware inicializado");
+    Serial.println("[INFO] Sistema listo.");
 }
 
 void loop() {
 
-    unsigned long ahora = millis();
-
-    if (ahora - ultimoTest >= 2000) {
-
-        ultimoTest = ahora;
-
-        // LEDs
-        estadoLed = !estadoLed;
-
-        Hardware::setLedVerde(estadoLed);
-        Hardware::setLedAzul(!estadoLed);
-
-        // DHT22
-        Hardware::DatosDHT22 dht =
-            Hardware::leerDHT22();
-
-        if (dht.valido) {
-
-            Serial.printf(
-                "[DHT22] Temp: %.1f C | Hum: %.1f %%\r\n",
-                dht.temperatura,
-                dht.humedad
-            );
-
-        } else {
-
-            Serial.println(
-                "[ERROR] Lectura DHT22 invalida"
-            );
-        }
-
-        // Potenciómetro
-        float voltaje =
-            Hardware::leerVoltajePotenciometro();
-
-        Serial.printf(
-            "[POTE] Voltaje: %.2f V\r\n",
-            voltaje
-        );
-    }
+    // Polling no bloqueante: verifica mensajes de Telegram cada ~1 segundo.
+    // Los mensajes se procesan en orden de llegada (FIFO).
+    TelegramBot::procesar();
 }
