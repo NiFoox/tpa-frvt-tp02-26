@@ -212,13 +212,17 @@ void despacharMensaje(const telegramMessage& msg) {
         texto.c_str()
     );
 
-    if (Config::TELEGRAM_CHAT_ID != 0 &&
-        chatId.toInt() != Config::TELEGRAM_CHAT_ID)
-    {
+    const String chatIdAutorizado = Config::TELEGRAM_CHAT_ID;
+
+    // Solo restringir acceso cuando hay un Chat ID configurado
+    if (!chatIdAutorizado.isEmpty() && chatId != chatIdAutorizado) {
+
         Serial.printf(
-            "[BOT] Acceso denegado a: %s\r\n", chatId.c_str()
+            "[BOT] Acceso denegado a: %s\r\n",
+            chatId.c_str()
         );
-        responder(chatId, "⛔ Acceso no autorizado.");
+
+        responder(chatId, "Acceso no autorizado.");
         return;
     }
 
