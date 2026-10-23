@@ -1,7 +1,6 @@
 #include "TelegramBot.h"
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 
@@ -9,6 +8,7 @@
 #include <Hardware.h>
 #include <Display.h>
 #include <ThingSpeakClient.h>
+#include <WifiService.h>
 
 namespace {
 
@@ -18,8 +18,22 @@ UniversalTelegramBot* bot = nullptr;
 unsigned long ultimoPoll = 0;
 constexpr unsigned long INTERVALO_POLL_MS = 1000;
 
-void responder(const String& chatId, const String& texto) {
-    bot->sendMessage(chatId, texto, "");
+bool responder(const String& chatId, const String& texto) {
+
+    if (!bot) {
+        Serial.println("[BOT][ERROR] Bot no inicializado");
+        return false;
+    }
+
+    bool enviado = bot->sendMessage(chatId, texto, "");
+
+    if (enviado) {
+        Serial.println("[BOT] Respuesta enviada correctamente");
+    } else {
+        Serial.println("[BOT][ERROR] No se pudo enviar la respuesta");
+    }
+
+    return enviado;
 }
 
 void cmdStart(const String& chatId) {
@@ -212,13 +226,17 @@ void despacharMensaje(const telegramMessage& msg) {
         texto.c_str()
     );
 
-    if (Config::TELEGRAM_CHAT_ID != 0 &&
-        chatId.toInt() != Config::TELEGRAM_CHAT_ID)
-    {
+    const String chatIdAutorizado = Config::TELEGRAM_CHAT_ID;
+
+    // Solo restringir acceso cuando hay un Chat ID configurado
+    if (!chatIdAutorizado.isEmpty() && chatId != chatIdAutorizado) {
+
         Serial.printf(
-            "[BOT] Acceso denegado a: %s\r\n", chatId.c_str()
+            "[BOT] Acceso denegado a: %s\r\n",
+            chatId.c_str()
         );
-        responder(chatId, "⛔ Acceso no autorizado.");
+
+        responder(chatId, "Acceso no autorizado.");
         return;
     }
 
@@ -237,8 +255,6 @@ void despacharMensaje(const telegramMessage& msg) {
     } else {
         cmdDesconocido(chatId, texto);
     }
-
-    Serial.printf("[BOT] Respuesta enviada a: %s\r\n\r\n", chatId.c_str());
 }
 
 }  // namespace
@@ -246,38 +262,42 @@ void despacharMensaje(const telegramMessage& msg) {
 namespace TelegramBot {
 
 void iniciar() {
-    Serial.printf("[WiFi] Conectando a: %s ", Config::WIFI_SSID);
 
-    WiFi.begin(Config::WIFI_SSID, Config::WIFI_PASSWORD);
+    // Temporal: se revisara la validacion TLS al final del TP.
+    clienteSeguro.setInsecure();
 
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.printf(
-        "\r\n[WiFi] Conectado. IP: %s\r\n",
-        WiFi.localIP().toString().c_str()
+    bot = new UniversalTelegramBot(
+        Config::TELEGRAM_BOT_TOKEN,
+        clienteSeguro
     );
 
-    clienteSeguro.setInsecure();
-    bot = new UniversalTelegramBot(Config::TELEGRAM_BOT_TOKEN, clienteSeguro);
-
-    Serial.println("[BOT] Bot de Telegram inicializado. Esperando mensajes...");
+    Serial.println("[BOT] Servicio Telegram inicializado");
 }
 
 void procesar() {
-    if (!bot) return;
+
+    if (!bot || !WifiService::conectado()) {
+        return;
+    }
 
     unsigned long ahora = millis();
 
-    if (ahora - ultimoPoll < INTERVALO_POLL_MS) return;
+    if (ahora - ultimoPoll < INTERVALO_POLL_MS) {
+        return;
+    }
 
     ultimoPoll = ahora;
 
-    int N = bot->getUpdates(bot->last_message_received + 1);
+    int nuevosMensajes = bot->getUpdates(
+        bot->last_message_received + 1
+    );
 
-    for (int i = 0; i < N; i++) {
+    if (nuevosMensajes < 0) {
+        Serial.println("[BOT] Error al consultar Telegram");
+        return;
+    }
+
+    for (int i = 0; i < nuevosMensajes; i++) {
         despacharMensaje(bot->messages[i]);
     }
 }

@@ -1,8 +1,10 @@
+
 #include <Arduino.h>
 
 #include <AppConfig.h>
 #include <Hardware.h>
 #include <Display.h>
+#include <WifiService.h>
 #include <TelegramBot.h>
 
 void setup() {
@@ -14,11 +16,16 @@ void setup() {
 
     Hardware::iniciar();
     Display::iniciar();
+
+    WifiService::iniciar();
     TelegramBot::iniciar();
 
-    Serial.println("[INFO] Sistema listo.");
+    Serial.println("[INFO] Modulos inicializados");
 }
 
 void loop() {
+
+    WifiService::actualizar();
     TelegramBot::procesar();
+
 }
