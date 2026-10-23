@@ -48,4 +48,7 @@ namespace Config {
 
     constexpr const char* THINGSPEAK_HOST =
         "api.thingspeak.com";
+
+    // WifiService
+    constexpr unsigned long WIFI_RETRY_INTERVAL_MS = 10000;
 }

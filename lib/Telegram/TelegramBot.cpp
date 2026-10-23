@@ -1,7 +1,6 @@
 #include "TelegramBot.h"
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 
@@ -9,6 +8,7 @@
 #include <Hardware.h>
 #include <Display.h>
 #include <ThingSpeakClient.h>
+#include <WifiService.h>
 
 namespace {
 
@@ -250,38 +250,42 @@ void despacharMensaje(const telegramMessage& msg) {
 namespace TelegramBot {
 
 void iniciar() {
-    Serial.printf("[WiFi] Conectando a: %s ", Config::WIFI_SSID);
 
-    WiFi.begin(Config::WIFI_SSID, Config::WIFI_PASSWORD);
+    // Temporal: se revisara la validacion TLS al final del TP.
+    clienteSeguro.setInsecure();
 
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.printf(
-        "\r\n[WiFi] Conectado. IP: %s\r\n",
-        WiFi.localIP().toString().c_str()
+    bot = new UniversalTelegramBot(
+        Config::TELEGRAM_BOT_TOKEN,
+        clienteSeguro
     );
 
-    clienteSeguro.setInsecure();
-    bot = new UniversalTelegramBot(Config::TELEGRAM_BOT_TOKEN, clienteSeguro);
-
-    Serial.println("[BOT] Bot de Telegram inicializado. Esperando mensajes...");
+    Serial.println("[BOT] Servicio Telegram inicializado");
 }
 
 void procesar() {
-    if (!bot) return;
+
+    if (!bot || !WifiService::conectado()) {
+        return;
+    }
 
     unsigned long ahora = millis();
 
-    if (ahora - ultimoPoll < INTERVALO_POLL_MS) return;
+    if (ahora - ultimoPoll < INTERVALO_POLL_MS) {
+        return;
+    }
 
     ultimoPoll = ahora;
 
-    int N = bot->getUpdates(bot->last_message_received + 1);
+    int nuevosMensajes = bot->getUpdates(
+        bot->last_message_received + 1
+    );
 
-    for (int i = 0; i < N; i++) {
+    if (nuevosMensajes < 0) {
+        Serial.println("[BOT] Error al consultar Telegram");
+        return;
+    }
+
+    for (int i = 0; i < nuevosMensajes; i++) {
         despacharMensaje(bot->messages[i]);
     }
 }
