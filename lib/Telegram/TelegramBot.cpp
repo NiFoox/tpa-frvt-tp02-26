@@ -18,8 +18,22 @@ UniversalTelegramBot* bot = nullptr;
 unsigned long ultimoPoll = 0;
 constexpr unsigned long INTERVALO_POLL_MS = 1000;
 
-void responder(const String& chatId, const String& texto) {
-    bot->sendMessage(chatId, texto, "");
+bool responder(const String& chatId, const String& texto) {
+
+    if (!bot) {
+        Serial.println("[BOT][ERROR] Bot no inicializado");
+        return false;
+    }
+
+    bool enviado = bot->sendMessage(chatId, texto, "");
+
+    if (enviado) {
+        Serial.println("[BOT] Respuesta enviada correctamente");
+    } else {
+        Serial.println("[BOT][ERROR] No se pudo enviar la respuesta");
+    }
+
+    return enviado;
 }
 
 void cmdStart(const String& chatId) {
@@ -241,8 +255,6 @@ void despacharMensaje(const telegramMessage& msg) {
     } else {
         cmdDesconocido(chatId, texto);
     }
-
-    Serial.printf("[BOT] Respuesta enviada a: %s\r\n\r\n", chatId.c_str());
 }
 
 }  // namespace
